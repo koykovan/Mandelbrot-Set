@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            font-family: 'Arial';
+            text-align: center;
+        }
+        section.guide {
+            position: absolute;
+            top: 7em;
+            right: 2em;
+            width: 20em;
+            color: white;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 1em;
+            box-sizing: border-box;
+            border-radius: 2em;
+        }
+        footer, header {
+            font-weight: bold;
+            padding: 3px;
+            background-color: #333;
+            color: white;
+        } 
+    </style>
+    <title>Mandelbrot Set</title>
+</head>
+<body>
+    <header>
+        <h1>Множество на Манделброт</h1>
+    </header>
+    <canvas id="myCanvas" width="1488" height="596"></canvas>
+    <section class="guide">
+        <aside>
+            <h2>Упътване за работа с програмата:</h2>
+            С кликване на левия бутон на мишката върху фрактала на желаната позиция, той се приближава. Когато задържите бутона ctrl и кликнете
+            с левия бутон на мишката, фракталът се отдалечава. С едновременно натискане на бутони ctrl и R от клавиатурата, екранът се обновява и фракталът
+            връща началния си облик.
+        </aside>
+    </section>
+    <footer>
+        <p>Фрактали, летен семестър 2023/2024</p>
+    </footer>
+    <script>
+            var canvas = document.getElementById("myCanvas");
+            var context = canvas.getContext("2d");
+
+            var canvasWidth = canvas.width;
+            var canvasHeight = canvas.height;
+            var imagedata = context.createImageData(canvasWidth, canvasHeight);
+
+            var offsetx = -canvasWidth / 2;
+            var offsety = -canvasHeight / 2;
+            var panx = -100;
+            var pany = 0;
+            var zoom = 150;
+            var palette = [];
+            var maxiterations = 250;
+
+            canvas.addEventListener("mousedown", onMouseDown);
+            generatePalette();
+            drawFractal();
+
+            function generatePalette() {
+                var roffset = 24, goffset = 16, boffset = 0;
+                for (var i = 0; i < 256; i++) {
+                    palette[i] = { r: roffset, g: goffset, b: boffset };
+                    if (i < 64) roffset += 3;
+                    else if (i < 128) goffset += 3;
+                    else if (i < 192) boffset += 3;
+                }
+            }
+
+            function drawFractal() {
+                for (var y = 0; y < canvasHeight; y++) {
+                    for (var x = 0; x < canvasWidth; x++) {
+                        mandelbrot(x, y, maxiterations);
+                    }
+                }
+                context.putImageData(imagedata, 0, 0);
+            }
+
+            function mandelbrot(x, y, maxiterations) {
+                var x0 = (x + offsetx + panx) / zoom;
+                var y0 = (y + offsety + pany) / zoom;
+                var a = 0, b = 0, rx = 0, ry = 0, iterations = 0;
+                while (iterations < maxiterations && (rx * rx + ry * ry <= 4)) {
+                    rx = a * a - b * b + x0;
+                    ry = 2 * a * b + y0;
+                    a = rx;
+                    b = ry;
+                    iterations++;
+                }
+                var color = (iterations == maxiterations) ? { r: 0, g: 0, b: 0 } : palette[Math.floor((iterations / (maxiterations - 1)) * 255)];
+                var pixelindex = (y * canvasWidth + x) * 4;
+                imagedata.data[pixelindex] = color.r;
+                imagedata.data[pixelindex + 1] = color.g;
+                imagedata.data[pixelindex + 2] = color.b;
+                imagedata.data[pixelindex + 3] = 255;
+            }
+
+            function zoomFractal(x, y, factor, zoomin) {
+                zoom = zoomin ? zoom * factor : zoom / factor;
+                panx = zoomin ? factor * (x + offsetx + panx) : (x + offsetx + panx) / factor;
+                pany = zoomin ? factor * (y + offsety + pany) : (y + offsety + pany) / factor;
+            }
+
+            function onMouseDown(e) {
+                var pos = getMousePos(canvas, e);
+                var zoomin = !e.ctrlKey;
+                var zoomfactor = e.shiftKey ? 1 : 2;
+                zoomFractal(pos.x, pos.y, zoomfactor, zoomin);
+                drawFractal();
+            }
+
+            function getMousePos(canvas, e) {
+                var rect = canvas.getBoundingClientRect();
+                return {
+                    x: Math.round((e.clientX - rect.left) / (rect.right - rect.left) * canvas.width),
+                    y: Math.round((e.clientY - rect.top) / (rect.bottom - rect.top) * canvas.height)
+                };
+            }
+    </script>
+</body>
+</html>
